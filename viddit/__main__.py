@@ -3,8 +3,8 @@ import logging
 from utils.logging_utils import setup_logger
 from core.reddit_scraper import RedditScraper
 from core.video_writer import generate_video_from_content
-from core.youtube_uploader import YoutubeUploader
-
+from core.content_upload.youtube_uploader import YoutubeUploader
+from core.content_upload.gdrive_uploader import upload_to_google_drive, save_credentials_web_server_login
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,8 @@ if __name__ == "__main__":
     # "kids" : False, # Specifies if the Video if for kids or not. Defaults to False.
     # "thumbnailLink" : "https://cdn.havecamerawilltravel.com/photographer/files/2020/01/youtube-logo-new-1068x510.jpg" # Optional. Specifies video thumbnail.
     # }
-    # youtube_uploader.upload(TEMP_OUTPUT_NAME, options) 
+    # youtube_uploader.upload(TEMP_OUTPUT_NAME, options)
+    save_credentials_web_server_login()
+    upload_to_google_drive(TEMP_OUTPUT_NAME)
 
 
