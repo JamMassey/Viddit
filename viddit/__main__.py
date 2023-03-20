@@ -26,14 +26,13 @@ DIRECTORIES = {
     "comment_audio": COMMENT_AUDIO_DIR,
     "comment_image": COMMENT_IMAGE_DIR,
 }
-SUBREDDIT_LIST = ["interestingasfuck"]
+SUBREDDIT_LIST = ["news"]
 MAX_VIDS_PER_SUBREDDIT = 3
 NO_COMMENTS = 5
 BACKGROUND_VIDEO = "background.mp4"
 TEMP_OUTPUT_NAME = "output.mp4"
 if __name__ == "__main__":
-    setup_logger()
-    save_credentials_web_server_login()
+    setup_logger(level=logging.DEBUG, stream_logs=True)
     reddit_creds = json.load(open("reddit_credentials.json"))
     subreddit_scraper = SubRedditInfoScraper(
         reddit_creds["client_id"],
@@ -58,7 +57,7 @@ if __name__ == "__main__":
         )
         comment_image_scraper = RedditPostImageScraper(DIRECTORIES)
         for j in range(len(posts)):
-            no_comments = comment_image_scraper.scrape(posts[j].url, NO_COMMENTS)
+            no_comments = comment_image_scraper.scrape_post(posts[j]["permalink"], NO_COMMENTS)
             vid_input_list = [f"{POST_IMAGE_DIR}/0.png"] + [
                 f"{COMMENT_IMAGE_DIR}/{x}.png" for x in range(0, no_comments)
             ]  # TODO Pass back paths from scrape

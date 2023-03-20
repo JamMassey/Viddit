@@ -39,6 +39,7 @@ class RedditPostImageScraper:
         self.driver.quit()
 
     def accept_cookies(self):
+        logger.info("Accepting Reddit cookies.")
         self.driver.get("https://www.reddit.com/")
         WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, "//button[contains(text(), 'Accept all')]")))
         self.driver.find_element("xpath", "//button[contains(text(), 'Accept all')]").click()
@@ -52,23 +53,28 @@ class RedditPostImageScraper:
         #     driver.add_cookie({'name':cookie_data[0],'value':cookie_data[1],'domain':'reddit.com'})
 
         # Fetching the post itself, text & screenshot
+        logger.debug("Deleting old data...")
         self.delete_data()
+        logger.info("Fetching post with URL: " + post_url)
         self.driver.get(post_url)
         post = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".Post")))
         post_text = post.find_element(By.CSS_SELECTOR, "h1").text  # TODO Text to speech
         post.screenshot(os.path.join(self.directories["post_image"], "0.png"))
+        logger.debug("Post text: " + post_text)
+        logger.info("Post fetched, performing text to speech for main post...")
         tts = gTTS(post_text)
         tts.save(os.path.join(self.directories["post_audio"], "0.mp3"))
         # Let comments load
+        logger.debug("Waiting for comments to load...")
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(3)  # TODO Can be a WebDriverWait
 
         # Fetching comments & top level comment determinator
         comments = WebDriverWait(self.driver, 20).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div[id^=t1_][tabindex]")))
         allowed_style = comments[0].get_attribute("style")
-
         # Filter for top only comments
         comments = [comment for comment in comments if comment.get_attribute("style") == allowed_style][:no_comments]
+        logger.info(f"Found {len(comments)} comments, filtering for top level comments...")
 
         # Save time & resources by only fetching X content
         for i in range(len(comments)):
@@ -85,10 +91,12 @@ class RedditPostImageScraper:
 
             # Getting comment into string
             text = "\n".join([element.text for element in comments[i].find_elements(By.CSS_SELECTOR, ".RichTextJSON-root")])
+            logger.debug(f"Performing TTS for comment {str(i)}, text: " + text)
             tts = gTTS(text)
             tts.save(os.path.join(self.directories["comment_audio"], f"{i}.mp3"))
             # Screenshot & save text
             comments[i].screenshot(os.path.join(self.directories["comment_image"], f"{i}.png"))
+        logger.info("Post and top comments screenshoted and text to speech-ed.")
         return len(comments)
 
 
@@ -102,56 +110,55 @@ class SubRedditInfoScraper:
             username=username,
         )
 
-
-def get_subreddit_info(
-    self,
-    subreddit_name,
-    limit=10,
-    time_filter="all",
-    filter_locked=True,
-    filter_mod=False,
-    filter_stickied=True,
-    filter_original_content=False,
-    filter_nsfw=False,
-    min_upvotes=None,
-    min_num_comments=None,
-    min_upvote_ratio=None,
-):
-    if time_filter not in ["all", "day", "hour", "month", "week", "year"]:
-        raise ValueError("time_filter must be one of 'all', 'day', 'hour', 'month', 'week', 'year'")
-    subreddit = self.reddit.subreddit(subreddit_name)
-
-    info_list = []
-    for submission in subreddit.top(limit=limit, time_filter=time_filter):
-        if (
-            (not filter_locked or not submission.locked)
-            and (not filter_mod or submission.distinguished is None)
-            and (not filter_stickied or not submission.stickied)
-            and (not filter_original_content or submission.is_original_content)
-            and (not filter_nsfw or not submission.over_18)
-            and (min_upvotes is None or submission.score >= min_upvotes)
-            and (min_num_comments is None or submission.num_comments >= min_num_comments)
-            and (min_upvote_ratio is None or submission.upvote_ratio >= min_upvote_ratio)
-        ):
-            info_dict = {
-                "created_utc": submission.created_utc,
-                "distinguished": submission.distinguished,
-                "id": submission.id,
-                "is_original_content": submission.is_original_content,
-                "link_flair_text": submission.link_flair_text,
-                "locked": submission.locked,
-                "name": submission.name,
-                "num_comments": submission.num_comments,
-                "nsfw": submission.over_18,
-                "permalink": submission.permalink,
-                "score": submission.score,
-                "selftext": submission.selftext,
-                "spoiler": submission.spoiler,
-                "stickied": submission.stickied,
-                "title": submission.title,
-                "upvote_ratio": submission.upvote_ratio,
-                "url": submission.url,
-            }
-            info_list.append(info_dict)
-
-    return info_list
+    def get_subreddit_info(
+        self,
+        subreddit_name,
+        limit=10,
+        time_filter="all",
+        filter_locked=True,
+        filter_mod=False,
+        filter_stickied=True,
+        filter_original_content=False,
+        filter_nsfw=False,
+        min_upvotes=None,
+        min_num_comments=None,
+        min_upvote_ratio=None,
+    ):
+        if time_filter not in ["all", "day", "hour", "month", "week", "year"]:
+            raise ValueError("time_filter must be one of 'all', 'day', 'hour', 'month', 'week', 'year'")
+        subreddit = self.reddit.subreddit(subreddit_name)
+        logger.info(f"Getting top {limit} posts from {subreddit_name} in {time_filter} time filter")
+        info_list = []
+        for submission in subreddit.top(limit=limit, time_filter=time_filter):
+            if (
+                (not filter_locked or not submission.locked)
+                and (not filter_mod or submission.distinguished is None)
+                and (not filter_stickied or not submission.stickied)
+                and (not filter_original_content or submission.is_original_content)
+                and (not filter_nsfw or not submission.over_18)
+                and (min_upvotes is None or submission.score >= min_upvotes)
+                and (min_num_comments is None or submission.num_comments >= min_num_comments)
+                and (min_upvote_ratio is None or submission.upvote_ratio >= min_upvote_ratio)
+            ):
+                info_dict = {
+                    "created_utc": submission.created_utc,
+                    "distinguished": submission.distinguished,
+                    "id": submission.id,
+                    "is_original_content": submission.is_original_content,
+                    "link_flair_text": submission.link_flair_text,
+                    "locked": submission.locked,
+                    "name": submission.name,
+                    "num_comments": submission.num_comments,
+                    "nsfw": submission.over_18,
+                    "permalink": submission.permalink,
+                    "score": submission.score,
+                    "selftext": submission.selftext,
+                    "spoiler": submission.spoiler,
+                    "stickied": submission.stickied,
+                    "title": submission.title,
+                    "upvote_ratio": submission.upvote_ratio,
+                    "url": submission.url,
+                }
+                info_list.append(info_dict)
+        logger.info(f"Found {len(info_list)} posts in {subreddit_name} with the given filters")
+        return info_list
