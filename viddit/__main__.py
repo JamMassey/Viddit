@@ -9,7 +9,14 @@ from core.content_upload.gdrive_uploader import (
 from core.content_upload.youtube_uploader import YoutubeUploader
 from core.reddit_scraper import RedditPostImageScraper, SubRedditInfoScraper
 from core.video_writer import generate_video_from_content
+from selenium.webdriver.remote.remote_connection import LOGGER
 from utils.logging_utils import setup_logger
+
+logging.getLogger("gtts").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+# logging.getLogger("praw").setLevel(logging.WARNING)
+
+LOGGER.setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +33,9 @@ DIRECTORIES = {
     "comment_audio": COMMENT_AUDIO_DIR,
     "comment_image": COMMENT_IMAGE_DIR,
 }
-SUBREDDIT_LIST = ["news"]
-MAX_VIDS_PER_SUBREDDIT = 3
-NO_COMMENTS = 5
+SUBREDDIT_LIST = ["Showerthoughts"]
+MAX_VIDS_PER_SUBREDDIT = 2
+NO_COMMENTS = 3
 BACKGROUND_VIDEO = "background.mp4"
 TEMP_OUTPUT_NAME = "output.mp4"
 if __name__ == "__main__":
@@ -57,13 +64,16 @@ if __name__ == "__main__":
         )
         comment_image_scraper = RedditPostImageScraper(DIRECTORIES)
         for j in range(len(posts)):
-            no_comments = comment_image_scraper.scrape_post(posts[j]["permalink"], NO_COMMENTS)
+            post_link = "https://www.reddit.com" + posts[j]["permalink"]
+            post_name = posts[j]["title"].split("/")[-1]
+            no_comments = comment_image_scraper.scrape_post("https://www.reddit.com" + posts[j]["permalink"], NO_COMMENTS)
             vid_input_list = [f"{POST_IMAGE_DIR}/0.png"] + [
                 f"{COMMENT_IMAGE_DIR}/{x}.png" for x in range(0, no_comments)
             ]  # TODO Pass back paths from scrape
             audio_input_list = [f"{POST_AUDIO_DIR}/0.mp3"] + [f"{COMMENT_AUDIO_DIR}/{x}.mp3" for x in range(0, no_comments)]
-            generate_video_from_content(BACKGROUND_VIDEO, vid_input_list, audio_input_list, output_name=TEMP_OUTPUT_NAME)
-            upload_to_google_drive(TEMP_OUTPUT_NAME)
+            generate_video_from_content(BACKGROUND_VIDEO, vid_input_list, audio_input_list, output_name=post_name + ".mp4")
+            upload_to_google_drive(post_name + ".mp4")
+            os.remove(post_name + ".mp4")
         # youtube_uploader = YoutubeUploader(secrets_file_path='./client_secrets.json')
     # youtube_uploader.authenticate(oauth_path='./oauth.json')
     # options = {

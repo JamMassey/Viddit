@@ -280,4 +280,3 @@ chromedriver.exe
 *.png
 output/
 *.json
-*.ipynb
