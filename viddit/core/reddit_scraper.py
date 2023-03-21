@@ -18,10 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 class RedditPostImageScraper:
-    def __init__(self, directories, path_to_driver="chromedriver.exe"):
+    def __init__(self, directories, path_to_driver="chromedriver.exe", headless=True):
         options = Options()
-        # options.add_argument('--headless')
-        # options.add_argument('--disable-gpu')  # Last I checked this was necessary.
+        if headless:
+            options.add_argument("--headless")
+            options.add_argument("--disable-gpu")
         self.driver = webdriver.Chrome(path_to_driver, chrome_options=options)
         self.directories = directories
         self.setup()
