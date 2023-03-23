@@ -65,6 +65,7 @@ def generate_video_from_content(background_video_path, png_paths, audio_paths, o
     logger.info(f"Concatenating clips and writing file to {output_name}, expected length: {str(total_frames / fps)} seconds")
     result_clip = concatenate_videoclips(clips)
     result_clip.write_videofile(output_name)
+    result_clip.close()
 
 
 def create_video(frames, output, fps=30):

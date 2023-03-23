@@ -98,6 +98,7 @@ class RedditPostImageScraper:
             # Screenshot & save text
             comments[i].screenshot(os.path.join(self.directories["comment_image"], f"{i}.png"))
         logger.info("Post and top comments screenshoted and text to speech-ed.")
+        del tts
         return len(comments)
 
 
