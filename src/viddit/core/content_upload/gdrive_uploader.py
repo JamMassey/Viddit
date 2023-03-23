@@ -3,12 +3,11 @@ import os
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-from pydrive.files import GoogleDriveFile
 
 logger = logging.getLogger(__name__)
 
 
-def upload_to_google_drive(video_file_path, folder_id=None):
+def upload_to_google_drive(video_file_path, creds_path, folder_id=None):
     """
     Uploads a video file to Google Drive using the PyDrive library.
 
@@ -22,7 +21,7 @@ def upload_to_google_drive(video_file_path, folder_id=None):
     # Authenticate with Google Drive using PyDrive
     gauth = GoogleAuth()
     try:
-        gauth.LoadCredentialsFile("oauth.json")
+        gauth.LoadCredentialsFile(creds_path)
     except FileNotFoundError:
         gauth.credentials = None
     # If the credentials are invalid or expired, refresh them
@@ -64,7 +63,7 @@ def get_credentials_web_server_login():
     return gauth
 
 
-def save_credentials_web_server_login():
+def save_credentials_web_server_login(creds_path):
     gauth = get_credentials_web_server_login()
-    gauth.SaveCredentialsFile("oauth.json")
+    gauth.SaveCredentialsFile(creds_path)
     return gauth

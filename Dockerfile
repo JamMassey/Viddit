@@ -11,4 +11,4 @@ COPY . /code
 RUN pip3 install .
 
 EXPOSE 9128
-ENTRYPOINT [ "python3", "viddit" ]
+ENTRYPOINT [ "python3", "src/viddit" ]

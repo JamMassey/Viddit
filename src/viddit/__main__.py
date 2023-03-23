@@ -2,14 +2,13 @@ import json
 import logging
 import os
 
-from core.content_upload.gdrive_uploader import upload_to_google_drive
-
+from viddit.core.content_upload.gdrive_uploader import upload_to_google_drive
 # from core.content_upload.youtube_uploader import YoutubeUploader
-from core.mongo import initialise_db
-from core.reddit_scraper import RedditPostImageScraper, SubRedditInfoScraper
-from core.video_writer import generate_video_from_content
+from viddit.core.mongo import initialise_db
+from viddit.core.reddit_scraper import RedditPostImageScraper, SubRedditInfoScraper
+from viddit.core.video_writer import generate_video_from_content
 from selenium.webdriver.remote.remote_connection import LOGGER
-from utils.logging_utils import setup_logger
+from viddit.utils.logging_utils import setup_logger
 
 logging.getLogger("gtts").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -39,10 +38,14 @@ BACKGROUND_VIDEO = "background.mp4"
 TEMP_OUTPUT_NAME = "output.mp4"
 LOCAL_MODE = True
 
+REDDIT_CREDS_PATH = os.path.join(os.path.dirname(__file__), 'creds', 'reddit_credential.json')
+OUATH_CREDS_PATH = os.path.join(os.path.dirname(__file__), 'creds', 'oath.json')
+CLIENT_SECRETSPATH = os.path.join(os.path.dirname(__file__), 'creds', 'client_secrets.json')
 
-if __name__ == "__main__":
+
+def main():
     setup_logger(level=logging.DEBUG, stream_logs=True)
-    reddit_creds = json.load(open("reddit_credentials.json"))
+    reddit_creds = json.load(open(REDDIT_CREDS_PATH))
     subreddit_scraper = SubRedditInfoScraper(
         reddit_creds["client_id"],
         reddit_creds["client_secret"],
@@ -82,7 +85,7 @@ if __name__ == "__main__":
                     ]  # TODO Pass back paths from scrape
                     audio_input_list = [f"{POST_AUDIO_DIR}/0.mp3"] + [f"{COMMENT_AUDIO_DIR}/{x}.mp3" for x in range(0, no_comments)]
                     generate_video_from_content(BACKGROUND_VIDEO, vid_input_list, audio_input_list, output_name=post_name + ".mp4")
-                    upload_to_google_drive(post_name + ".mp4")
+                    upload_to_google_drive(post_name + ".mp4", OUATH_CREDS_PATH)
                     os.remove(post_name + ".mp4")
                 else:
                     if connection_status:
@@ -94,7 +97,7 @@ if __name__ == "__main__":
                             ]  # TODO Pass back paths from scrape
                             audio_input_list = [f"{POST_AUDIO_DIR}/0.mp3"] + [f"{COMMENT_AUDIO_DIR}/{x}.mp3" for x in range(0, no_comments)]
                             generate_video_from_content(BACKGROUND_VIDEO, vid_input_list, audio_input_list, output_name=post_name + ".mp4")
-                            upload_to_google_drive(post_name + ".mp4")
+                            upload_to_google_drive(post_name + ".mp4", OUATH_CREDS_PATH)
                             os.remove(post_name + ".mp4")
                             db.add_viddited(posts[j]["permalink"])
                     else:
@@ -103,6 +106,10 @@ if __name__ == "__main__":
                 logger.error(f"Error processing post {post_link}")
                 logger.error(e)
                 continue
+
+
+if __name__ == "__main__":
+    main()
 
     # youtube_uploader = YoutubeUploader(secrets_file_path='./client_secrets.json')
     # youtube_uploader.authenticate(oauth_path='./oauth.json')
