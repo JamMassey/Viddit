@@ -277,6 +277,5 @@ chromedriver.exe
 *.mp4
 *.mp3
 *.png
-output/
 data/
 src/viddit/resources/creds/*
