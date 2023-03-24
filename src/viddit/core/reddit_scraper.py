@@ -18,12 +18,24 @@ logger = logging.getLogger(__name__)
 
 
 class RedditPostImageScraper:
-    def __init__(self, directories, path_to_driver="chromedriver.exe", headless=True):
+    def __init__(self, directories, path_to_driver="chromedriver.exe", headless=True, operating_sys = "linux"):
+        #check driver exists
+        if os not in ["windows", "linux"]:
+            raise ValueError("os must be 'windows' or 'linux'")
+        if not os.path.exists(path_to_driver):
+            raise FileNotFoundError("Could not find chromedriver at path: " + path_to_driver)
         options = Options()
+        if operating_sys == "linux":
+            options.add_argument("--disable-dev-shm-usage")
         if headless:
+            if operating_sys == "windows":
+                options.add_argument("--disable-gpu")
             options.add_argument("--headless")
-            options.add_argument("--disable-gpu")
-        self.driver = webdriver.Chrome(path_to_driver, chrome_options=options)
+            options.add_argument("start-maximized")
+            options.add_argument("disable-infobars")
+            options.add_argument("--disable-extensions")
+            #options.add_argument("--no-sandbox") #May be discouraged
+        self.driver = webdriver.Chrome(path_to_driver, options=options)
         self.directories = directories
         self.setup()
 

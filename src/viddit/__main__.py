@@ -38,9 +38,10 @@ BACKGROUND_VIDEO = "background.mp4"
 TEMP_OUTPUT_NAME = "output.mp4"
 LOCAL_MODE = True
 
-REDDIT_CREDS_PATH = os.path.join(os.path.dirname(__file__), 'creds', 'reddit_credential.json')
-OUATH_CREDS_PATH = os.path.join(os.path.dirname(__file__), 'creds', 'oath.json')
-CLIENT_SECRETSPATH = os.path.join(os.path.dirname(__file__), 'creds', 'client_secrets.json')
+REDDIT_CREDS_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'creds', 'reddit_credentials.json')
+OUATH_CREDS_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'creds', 'oath.json')
+CLIENT_SECRETS_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'creds', 'client_secrets.json')
+CHROME_DRIVER_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'chromedriver')
 
 
 def main():
@@ -73,7 +74,7 @@ def main():
         else:
             db, connection_status = initialise_db()
 
-        comment_image_scraper = RedditPostImageScraper(DIRECTORIES)
+        comment_image_scraper = RedditPostImageScraper(DIRECTORIES, CHROME_DRIVER_PATH)
         for j in range(len(posts)):
             post_link = "https://www.reddit.com" + posts[j]["permalink"]
             try:
