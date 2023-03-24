@@ -15,11 +15,11 @@ logging.getLogger("gtts").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("praw").setLevel(logging.WARNING)
 
-LOGGER.setLevel(logging.WARNING)
+LOGGER.setLevel(logging.INFO)
 
 logger = logging.getLogger(__name__)
 
-BASE_OUTPUT_DIR = os.path.join("code","output")
+BASE_OUTPUT_DIR = os.path.join("output")
 COMMENT_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "comments")
 POST_DIR = os.path.join(BASE_OUTPUT_DIR, "post")
 POST_AUDIO_DIR = os.path.join(POST_DIR, "audio")
@@ -36,7 +36,7 @@ BACKGROUND_PATH = os.path.join(os.path.dirname(__file__), 'resources', "backgrou
 REDDIT_CREDS_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'creds', 'reddit_credentials.json')
 OUATH_CREDS_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'creds', 'oauth.json')
 CLIENT_SECRETS_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'creds', 'client_secrets.json')
-CHROME_DRIVER_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'chromedriver') #Dockerfile dictates where this is
+CHROME_DRIVER_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'chromedriver.exe') #Dockerfile dictates where this is
 
 
 SUBREDDIT_LIST = ["Showerthoughts"]
@@ -44,7 +44,10 @@ MAX_VIDS_PER_SUBREDDIT = 5
 NO_COMMENTS = 3
 TEMP_OUTPUT_NAME = "output.mp4"
 LOCAL_MODE = True
+OPERATING_SYS = "windows"
 
+from pydrive.auth import GoogleAuth
+GoogleAuth.DEFAULT_SETTINGS['client_config_file'] = CLIENT_SECRETS_PATH
 
 
 def main():
@@ -77,7 +80,7 @@ def main():
         else:
             db, connection_status = initialise_db()
 
-        comment_image_scraper = RedditPostImageScraper(DIRECTORIES, CHROME_DRIVER_PATH)
+        comment_image_scraper = RedditPostImageScraper(DIRECTORIES, CHROME_DRIVER_PATH, operating_sys= OPERATING_SYS)
         for j in range(len(posts)):
             post_link = "https://www.reddit.com" + posts[j]["permalink"]
             try:

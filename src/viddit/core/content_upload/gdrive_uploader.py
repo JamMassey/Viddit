@@ -18,7 +18,7 @@ def upload_to_google_drive(video_file_path, creds_path, folder_id=None):
     Returns:
         str: The ID of the uploaded file in Google Drive.
     """
-    
+
     # Authenticate with Google Drive using PyDrive
     gauth = GoogleAuth()
     try:
