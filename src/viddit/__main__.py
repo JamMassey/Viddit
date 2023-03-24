@@ -1,3 +1,4 @@
+#TODO 
 import json
 import logging
 import os
@@ -18,7 +19,7 @@ LOGGER.setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-BASE_OUTPUT_DIR = "output"
+BASE_OUTPUT_DIR = os.path.join("code","output")
 COMMENT_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "comments")
 POST_DIR = os.path.join(BASE_OUTPUT_DIR, "post")
 POST_AUDIO_DIR = os.path.join(POST_DIR, "audio")

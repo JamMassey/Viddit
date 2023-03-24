@@ -26,5 +26,4 @@ ENV DISPLAY=:99
 RUN python3 -m pip install --upgrade pip
 RUN pip3 install .
 
-EXPOSE 9128
 ENTRYPOINT [ "python3", "src/viddit" ]
