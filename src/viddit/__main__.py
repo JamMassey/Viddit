@@ -34,7 +34,7 @@ DIRECTORIES = {
 }
 BACKGROUND_PATH = os.path.join(os.path.dirname(__file__), 'resources', "background.mp4")
 REDDIT_CREDS_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'creds', 'reddit_credentials.json')
-OUATH_CREDS_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'creds', 'oath.json')
+OUATH_CREDS_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'creds', 'oauth.json')
 CLIENT_SECRETS_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'creds', 'client_secrets.json')
 CHROME_DRIVER_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'chromedriver') #Dockerfile dictates where this is
 
