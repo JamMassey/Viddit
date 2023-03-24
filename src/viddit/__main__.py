@@ -32,17 +32,19 @@ DIRECTORIES = {
     "comment_audio": COMMENT_AUDIO_DIR,
     "comment_image": COMMENT_IMAGE_DIR,
 }
-SUBREDDIT_LIST = ["Showerthoughts"]
-MAX_VIDS_PER_SUBREDDIT = 5
-NO_COMMENTS = 3
-BACKGROUND_VIDEO = "background.mp4"
-TEMP_OUTPUT_NAME = "output.mp4"
-LOCAL_MODE = True
-
+BACKGROUND_PATH = os.path.join(os.path.dirname(__file__), 'resources', "background.mp4")
 REDDIT_CREDS_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'creds', 'reddit_credentials.json')
 OUATH_CREDS_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'creds', 'oath.json')
 CLIENT_SECRETS_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'creds', 'client_secrets.json')
-CHROME_DRIVER_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'chromedriver')
+CHROME_DRIVER_PATH = os.path.join(os.path.dirname(__file__), 'resources', 'chromedriver') #Dockerfile dictates where this is
+
+
+SUBREDDIT_LIST = ["Showerthoughts"]
+MAX_VIDS_PER_SUBREDDIT = 5
+NO_COMMENTS = 3
+TEMP_OUTPUT_NAME = "output.mp4"
+LOCAL_MODE = True
+
 
 
 def main():
@@ -86,7 +88,7 @@ def main():
                         f"{COMMENT_IMAGE_DIR}/{x}.png" for x in range(0, no_comments)
                     ]  # TODO Pass back paths from scrape
                     audio_input_list = [f"{POST_AUDIO_DIR}/0.mp3"] + [f"{COMMENT_AUDIO_DIR}/{x}.mp3" for x in range(0, no_comments)]
-                    generate_video_from_content(BACKGROUND_VIDEO, vid_input_list, audio_input_list, output_name=post_name + ".mp4")
+                    generate_video_from_content(BACKGROUND_PATH, vid_input_list, audio_input_list, output_name=post_name + ".mp4")
                     upload_to_google_drive(post_name + ".mp4", OUATH_CREDS_PATH)
                     os.remove(post_name + ".mp4")
                 else:
@@ -98,7 +100,7 @@ def main():
                                 f"{COMMENT_IMAGE_DIR}/{x}.png" for x in range(0, no_comments)
                             ]  # TODO Pass back paths from scrape
                             audio_input_list = [f"{POST_AUDIO_DIR}/0.mp3"] + [f"{COMMENT_AUDIO_DIR}/{x}.mp3" for x in range(0, no_comments)]
-                            generate_video_from_content(BACKGROUND_VIDEO, vid_input_list, audio_input_list, output_name=post_name + ".mp4")
+                            generate_video_from_content(BACKGROUND_PATH, vid_input_list, audio_input_list, output_name=post_name + ".mp4")
                             upload_to_google_drive(post_name + ".mp4", OUATH_CREDS_PATH)
                             os.remove(post_name + ".mp4")
                             db.add_viddited(posts[j]["permalink"])

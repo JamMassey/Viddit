@@ -128,7 +128,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 cov.xml
-.vscode/
 
 ### Linux ###
 *~
@@ -279,5 +278,5 @@ chromedriver.exe
 *.mp3
 *.png
 output/
-*.json
 data/
+src/viddit/resources/creds/*

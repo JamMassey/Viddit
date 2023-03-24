@@ -9,6 +9,10 @@ logger = logging.getLogger(__name__)
 
 
 def generate_video_from_content(background_video_path, png_paths, audio_paths, output_name="output.mp4", wait_time=2):
+    # Check background video exists
+    if not os.path.exists(background_video_path):
+        raise FileNotFoundError(f"Background video {background_video_path} does not exist.")
+    
     # Open the background video file
     cap = cv2.VideoCapture(background_video_path)
     logger.info(f"Generating video from {len(png_paths)} images and {len(audio_paths)} audio files")

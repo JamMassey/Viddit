@@ -4,7 +4,7 @@ setuptools.setup(
     name='viddit',
     package_dir={'': 'src'},
     package_data={
-        'viddit': ['creds/*']
+        'viddit': ['resources/*']
     },
     include_package_data=True,
     install_requires=["opencv-python", "selenium", "moviepy", "numpy", "oauth2client", "gTTS", "google-api-python-client", "google-auth-oauthlib", "google-auth-httplib2", "pymongo", "praw", "pydrive"],
