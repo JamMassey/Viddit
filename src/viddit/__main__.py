@@ -42,7 +42,7 @@ BACKGROUND_PATH = os.path.join(os.path.dirname(__file__), "resources", "backgrou
 REDDIT_CREDS_PATH = os.path.join(os.path.dirname(__file__), "resources", "reddit_credentials.json")
 OUATH_CREDS_PATH = os.path.join(os.path.dirname(__file__), "resources", "oauth.json")
 CLIENT_SECRETS_PATH = os.path.join(os.path.dirname(__file__), "resources", "client_secrets.json")
-CHROME_DRIVER_PATH = os.path.join(os.path.dirname(__file__), "resources", "chromedriver.exe")  # Dockerfile dictates where this is
+CHROME_DRIVER_PATH = os.path.join(os.path.dirname(__file__), "resources", "chromedriver")  # Dockerfile dictates where this is
 TEMP_OUTPUT_NAME = "output.mp4"
 
 from pydrive.auth import GoogleAuth
@@ -83,38 +83,38 @@ def main():
         )
         for j in range(len(posts)):
             post_link = "https://www.reddit.com" + posts[j]["permalink"]
-            try:
-                if args.local_mode:
-                    post_name = posts[j]["title"].replace(" ", "_")
-                    no_comments = comment_image_scraper.scrape_post("https://www.reddit.com" + posts[j]["permalink"], args.max_comments)
-                    vid_input_list = [f"{POST_IMAGE_DIR}/0.png"] + [
-                        f"{COMMENT_IMAGE_DIR}/{x}.png" for x in range(0, no_comments)
-                    ]  # TODO Pass back paths from scrape
-                    audio_input_list = [f"{POST_AUDIO_DIR}/0.mp3"] + [f"{COMMENT_AUDIO_DIR}/{x}.mp3" for x in range(0, no_comments)]
-                    generate_video_from_content(BACKGROUND_PATH, vid_input_list, audio_input_list, output_name=post_name + ".mp4")
-                    upload_to_google_drive(post_name + ".mp4", OUATH_CREDS_PATH)
-                    os.remove(post_name + ".mp4")
+            # try:
+            if args.local_mode:
+                post_name = posts[j]["title"].replace(" ", "_")
+                no_comments = comment_image_scraper.scrape_post("https://www.reddit.com" + posts[j]["permalink"], args.max_comments)
+                vid_input_list = [f"{POST_IMAGE_DIR}/0.png"] + [
+                    f"{COMMENT_IMAGE_DIR}/{x}.png" for x in range(0, no_comments)
+                ]  # TODO Pass back paths from scrape
+                audio_input_list = [f"{POST_AUDIO_DIR}/0.mp3"] + [f"{COMMENT_AUDIO_DIR}/{x}.mp3" for x in range(0, no_comments)]
+                generate_video_from_content(BACKGROUND_PATH, vid_input_list, audio_input_list, output_name=TEMP_OUTPUT_NAME)
+                upload_to_google_drive(TEMP_OUTPUT_NAME, OUATH_CREDS_PATH, post_name + ".mp4")
+                os.remove(TEMP_OUTPUT_NAME)
+            else:
+                if connection_status:
+                    if not db.get_viddited(posts[j]["permalink"]):
+                        post_name = posts[j]["title"].replace(" ", "_")
+                        no_comments = comment_image_scraper.scrape_post(
+                            "https://www.reddit.com" + posts[j]["permalink"], args.max_comments
+                        )
+                        vid_input_list = [f"{POST_IMAGE_DIR}/0.png"] + [
+                            f"{COMMENT_IMAGE_DIR}/{x}.png" for x in range(0, no_comments)
+                        ]  # TODO Pass back paths from scrape
+                        audio_input_list = [f"{POST_AUDIO_DIR}/0.mp3"] + [f"{COMMENT_AUDIO_DIR}/{x}.mp3" for x in range(0, no_comments)]
+                        generate_video_from_content(BACKGROUND_PATH, vid_input_list, audio_input_list, output_name=post_name + ".mp4")
+                        upload_to_google_drive(post_name + ".mp4", OUATH_CREDS_PATH)
+                        os.remove(TEMP_OUTPUT_NAME)
+                        db.add_viddited(posts[j]["permalink"])
                 else:
-                    if connection_status:
-                        if not db.get_viddited(posts[j]["permalink"]):
-                            post_name = posts[j]["title"].replace(" ", "_")
-                            no_comments = comment_image_scraper.scrape_post(
-                                "https://www.reddit.com" + posts[j]["permalink"], args.max_comments
-                            )
-                            vid_input_list = [f"{POST_IMAGE_DIR}/0.png"] + [
-                                f"{COMMENT_IMAGE_DIR}/{x}.png" for x in range(0, no_comments)
-                            ]  # TODO Pass back paths from scrape
-                            audio_input_list = [f"{POST_AUDIO_DIR}/0.mp3"] + [f"{COMMENT_AUDIO_DIR}/{x}.mp3" for x in range(0, no_comments)]
-                            generate_video_from_content(BACKGROUND_PATH, vid_input_list, audio_input_list, output_name=post_name + ".mp4")
-                            upload_to_google_drive(post_name + ".mp4", OUATH_CREDS_PATH)
-                            os.remove(post_name + ".mp4")
-                            db.add_viddited(posts[j]["permalink"])
-                    else:
-                        raise Exception("Unable to connect to database while in non-local mode")
-            except Exception as e:
-                logger.error(f"Error processing post {post_link}")
-                logger.error(e)
-                continue
+                    raise Exception("Unable to connect to database while in non-local mode")
+            # except Exception as e:
+            #     logger.error(f"Error processing post {post_link}")
+            #     logger.error(e)
+            #     continue
 
 
 if __name__ == "__main__":

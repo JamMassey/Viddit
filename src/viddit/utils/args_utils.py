@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import List
 import logging
 from argparse import ArgumentParser
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import OrderedDict
 
@@ -41,7 +41,7 @@ class Args:
 
     log_level: int = logging.INFO
     console_log: bool = True
-    subreddits: List[str] = ["Showerthoughts"]
+    subreddits: List[str] = field(default_factory=list)
     max_vids_per_subreddit: int = 3
     max_comments: int = 5
     local_mode: bool = True

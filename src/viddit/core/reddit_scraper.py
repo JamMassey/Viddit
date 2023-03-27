@@ -29,8 +29,8 @@ class RedditPostImageScraper:
             options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--remote-debugging-port=0")
             options.add_argument("--no-sandbox") # Discouraged - It is way better to run the Docker container as a non-root user. Problem for another day.
-            options.add_argument("start-maximized")
-            options.add_argument("disable-infobars")
+            options.add_argument("--start-maximized")
+            options.add_argument("--disable-infobars")
             options.add_argument("--disable-extensions")
         if headless:
             if operating_sys == "windows":
