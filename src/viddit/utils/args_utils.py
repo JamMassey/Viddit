@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from typing import List
 import logging
 from argparse import ArgumentParser
 from dataclasses import dataclass
@@ -41,7 +41,7 @@ class Args:
 
     log_level: int = logging.INFO
     console_log: bool = True
-    subreddits: list[str] = ["Showerthoughts"]
+    subreddits: List[str] = ["Showerthoughts"]
     max_vids_per_subreddit: int = 3
     max_comments: int = 5
     local_mode: bool = True
@@ -67,7 +67,7 @@ def parse_args() -> Args:
     arg_parser.add_argument(
         "-sr",
         "--subreddits",
-        type=list[str],
+        nargs="+",
         default=["Showerthoughts"],
         dest="subreddits",
         help="The subreddits to scrape",
