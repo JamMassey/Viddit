@@ -1,5 +1,4 @@
 import logging
-import subprocess
 import time
 from typing import Dict, List
 
@@ -189,25 +188,21 @@ class VidditMongoClient(MongoDBClient):
         validator = {
             "bsonType": "object",
             "title": "Viddited Collection Validation",
-            "required": ["PostLink", "IndividualPosted"],
+            "required": ["PostLink"],
             "properties": {
                 "PostLink": {
                     "bsonType": "string",
                     "description": "Link to the Post.",
-                },
-                "IndividualPosted": {
-                    "bsonType": "bool",
-                    "description": "Whether the post has been made a individual video yet.",
-                },
+                }
             },
         }
         self.create_collection("Viddited", validator_schema=validator)
         logger.info("Viddited table initialised.")
 
-    def add_viddited(self, post_link: str, individual_posted: bool = False):
+    def add_viddited(self, post_link: str):
         """Add a viddited post to the database if it doesn't aready exist."""
         if not self.find_one("Viddited", {"PostLink": post_link}):
-            self.insert_one("Viddited", {"PostLink": post_link, "IndividualPosted": individual_posted})
+            self.insert_one("Viddited", {"PostLink": post_link})
 
     def get_viddited(self, post_link: str):
         """Get a viddited post from the database."""
@@ -217,35 +212,31 @@ class VidditMongoClient(MongoDBClient):
         """Get all viddited posts from the database."""
         return self.find("Viddited")
 
-    def update_viddited(self, post_link: str, individual_posted: bool):
-        """Update a viddited post in the database."""
-        self.update_one("Viddited", {"PostLink": post_link}, {"$set": {"IndividualPosted": individual_posted}})
 
-
-def initialise_db():  # This is called in the main bot file and is the bit of code that connects to the database.
+def initialise_db(
+    max_attempts: int = 5, sleep: int = 5
+):  # This is called in the main bot file and is the bit of code that connects to the database.
     """Initialise the database."""
     connected = False
     attempts = 0
-    while connected == False and attempts < 5:
-        logger.info(f"Connecting to database... Attempt {str(attempts+1)} of 10")
+    while connected == False and attempts < max_attempts:
+        logger.info(f"Connecting to database... Attempt {str(attempts+1)} of {max_attempts}")
         db_client = VidditMongoClient(
             host="mongo", port=27017
         )  # It creates a new instance of the CustomMongoDBClient class, which abstracts our database interactions.
         try:
-            time.sleep(10)
+            time.sleep(sleep)
             db_client.client.admin.command("ping")  # This is a test to see if the database is up and running.
             connected = True
         except Exception as e:
             logger.error("Connecting to database...")
             logger.error(e)
-            if attempts < 9:
+            if attempts < max_attempts - 1:
                 logger.info("Retrying...")
             else:
                 logger.info("Failed to connect to database.")
             attempts += 1
     if connected:
         logger.info("Connected to database.")
-        db_client.initialise_user_table()  # This makes the table if it doesn't exist and ensures the validation rules.
-        db_client.initialise_news_table()
-        bot.db_client = db_client  # This adds the db_client to the bot object so that it can be accessed elsewhere.
-    return bot
+        db_client.initialise_viddited_table()  # This makes the table if it doesn't exist and ensures the validation rules.
+    return db_client, connected

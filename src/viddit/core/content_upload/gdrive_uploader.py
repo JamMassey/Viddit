@@ -3,26 +3,27 @@ import os
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-from pydrive.files import GoogleDriveFile
 
 logger = logging.getLogger(__name__)
 
 
-def upload_to_google_drive(video_file_path, folder_id=None):
+def upload_to_google_drive(video_file_path, creds_path, output_name, folder_id=None, metadata={}):
     """
     Uploads a video file to Google Drive using the PyDrive library.
 
     Args:
         video_file_path (str): The path to the MP4 video file to upload.
         folder_id (str, optional): The ID of the Google Drive folder to upload the video file to. Defaults to None.
+        metadata (dict, optional): A dictionary of metadata properties to attach to the file. Defaults to an empty dictionary.
 
     Returns:
         str: The ID of the uploaded file in Google Drive.
     """
+
     # Authenticate with Google Drive using PyDrive
     gauth = GoogleAuth()
     try:
-        gauth.LoadCredentialsFile("oauth.json")
+        gauth.LoadCredentialsFile(creds_path)
     except FileNotFoundError:
         gauth.credentials = None
     # If the credentials are invalid or expired, refresh them
@@ -32,14 +33,16 @@ def upload_to_google_drive(video_file_path, folder_id=None):
 
     # Create a Google Drive client object
     drive = GoogleDrive(gauth)
-    logger.info(f"Uploading {video_file_path} to Google Drive.")
+    logger.info(f"Uploading {output_name} to Google Drive.")
     # Define the metadata for the video file
-    file_metadata = {"title": os.path.basename(video_file_path)}
+    file_metadata = {"title": os.path.basename(output_name)}
     if folder_id:
         file_metadata["parents"] = [{"kind": "drive#fileLink", "id": folder_id}]
+    # Merge the metadata argument with the file metadata
+    file_metadata.update(metadata)
 
     # Create a Google Drive file object for the video file
-    file = drive.CreateFile()
+    file = drive.CreateFile(file_metadata)
 
     # Set the content of the Google Drive file object to the video file
     file.SetContentFile(video_file_path)
@@ -64,7 +67,7 @@ def get_credentials_web_server_login():
     return gauth
 
 
-def save_credentials_web_server_login():
+def save_credentials_web_server_login(creds_path):
     gauth = get_credentials_web_server_login()
-    gauth.SaveCredentialsFile("oauth.json")
+    gauth.SaveCredentialsFile(creds_path)
     return gauth

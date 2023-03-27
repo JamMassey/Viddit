@@ -10,7 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from utils.file_util import delete_content_of_dir, make_dir_if_not_exists
+from viddit.utils.file_util import delete_content_of_dir, make_dir_if_not_exists
 
 # TODO: Remove Automod comments
 
@@ -18,11 +18,25 @@ logger = logging.getLogger(__name__)
 
 
 class RedditPostImageScraper:
-    def __init__(self, directories, path_to_driver="chromedriver.exe"):
+    def __init__(self, directories, path_to_driver="chromedriver.exe", headless=True, operating_sys = "linux"):
+        #check driver exists
+        if operating_sys not in ["windows", "linux"]:
+            raise ValueError("os must be 'windows' or 'linux'")
+        if not os.path.exists(path_to_driver):
+            raise FileNotFoundError("Could not find chromedriver at path: " + path_to_driver)
         options = Options()
-        # options.add_argument('--headless')
-        # options.add_argument('--disable-gpu')  # Last I checked this was necessary.
-        self.driver = webdriver.Chrome(path_to_driver, chrome_options=options)
+        if operating_sys == "linux":
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--remote-debugging-port=0")
+            options.add_argument("--no-sandbox") # Discouraged - It is way better to run the Docker container as a non-root user. Problem for another day.
+            options.add_argument("--start-maximized")
+            options.add_argument("--disable-infobars")
+            options.add_argument("--disable-extensions")
+        if headless:
+            if operating_sys == "windows":
+                options.add_argument("--disable-gpu")
+            options.add_argument("--headless")
+        self.driver = webdriver.Chrome(path_to_driver, options=options)
         self.directories = directories
         self.setup()
 

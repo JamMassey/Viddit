@@ -1,14 +1,18 @@
 import logging
-
+import os
 import cv2
 import numpy as np
 from moviepy.editor import AudioFileClip, concatenate_videoclips
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
-
+import time
 logger = logging.getLogger(__name__)
 
 
 def generate_video_from_content(background_video_path, png_paths, audio_paths, output_name="output.mp4", wait_time=2):
+    # Check background video exists
+    if not os.path.exists(background_video_path):
+        raise FileNotFoundError(f"Background video {background_video_path} does not exist.")
+    
     # Open the background video file
     cap = cv2.VideoCapture(background_video_path)
     logger.info(f"Generating video from {len(png_paths)} images and {len(audio_paths)} audio files")
@@ -60,11 +64,21 @@ def generate_video_from_content(background_video_path, png_paths, audio_paths, o
         # create_video(f"temp_{str(i)}.mp4")
         video_clip = ImageSequenceClip(frames, fps=fps).set_audio(audio_clip)
         clips.append(video_clip)
-    del frames
-    del audio_clip
+        # audio_clip.close()
+        # video_clip.close()
+        del audio_clip
+        del video_clip
     logger.info(f"Concatenating clips and writing file to {output_name}, expected length: {str(total_frames / fps)} seconds")
     result_clip = concatenate_videoclips(clips)
     result_clip.write_videofile(output_name)
+    result_clip.close()
+    cap.release()
+    del cap
+    del result_clip
+    del clips
+    
+
+
 
 
 def create_video(frames, output, fps=30):
