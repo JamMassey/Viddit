@@ -1,6 +1,8 @@
 include pyproject.toml
 include *.md
 include tox.ini
+include Dockerfile
+include *.yaml
 recursive-include dist *.gz
 recursive-include dist *.whl
 recursive-include src *.pyc
