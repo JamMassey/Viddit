@@ -1,0 +1,7 @@
+include pyproject.toml
+include *.md
+include tox.ini
+recursive-include dist *.gz
+recursive-include dist *.whl
+recursive-include src *.pyc
+recursive-include tests *.py
