@@ -52,6 +52,7 @@ GoogleAuth.DEFAULT_SETTINGS["client_config_file"] = CLIENT_SECRETS_PATH
 
 def main():
     args = parse_args()
+    reddits = args.subreddits.split("|")
     setup_logger(level=args.log_level, stream_logs=args.console_log)
     reddit_creds = json.load(open(REDDIT_CREDS_PATH))
     if args.local_mode:
@@ -67,9 +68,9 @@ def main():
         reddit_creds["username"],
     )
     comment_image_scraper = RedditPostImageScraper(DIRECTORIES, CHROME_DRIVER_PATH, operating_sys=args.operating_sys)
-    for i in range(len(args.subreddits)):
+    for i in range(len(reddits)):
         posts = subreddit_scraper.get_subreddit_info(
-            args.subreddits[i],
+            reddits[i],
             limit=args.max_vids_per_subreddit,
             time_filter="all",
             filter_locked=True,

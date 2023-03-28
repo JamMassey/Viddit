@@ -41,7 +41,7 @@ class Args:
 
     log_level: int = logging.INFO
     console_log: bool = True
-    subreddits: List[str] = field(default_factory=list)
+    subreddits: str = "Showerthoughts"
     max_vids_per_subreddit: int = 3
     max_comments: int = 5
     local_mode: bool = True
@@ -67,8 +67,8 @@ def parse_args() -> Args:
     arg_parser.add_argument(
         "-sr",
         "--subreddits",
-        nargs="+",
-        default=["Showerthoughts"],
+        type=str,
+        default="Showerthoughts",
         dest="subreddits",
         help="The subreddits to scrape",
     )

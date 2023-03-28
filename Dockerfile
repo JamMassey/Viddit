@@ -23,7 +23,12 @@ RUN unzip /tmp/chromedriver.zip chromedriver -d /code/src/viddit/resources
 # Set display port to avoid crash
 ENV DISPLAY=:99
 
+ARG SUBREDDITS 
+ARG MAX_COMMENTS
+ARG MAX_VIDEOS
+
+
 RUN python3 -m pip install --upgrade pip
 RUN pip3 install .
 
-ENTRYPOINT [ "python3", "src/viddit" ]
+CMD [ "python3", "src/viddit", "--subreddits", "$SUBREDDITS", "--max-comments", "$MAX_COMMENTS", "--max-vids-per-subreddit", "$MAX_VIDEOS", "--operating-system", "linux",  "--no-local-mode"]
