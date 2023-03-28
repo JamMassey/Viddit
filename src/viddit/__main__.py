@@ -2,26 +2,18 @@
 import json
 import logging
 import os
-
 from selenium.webdriver.remote.remote_connection import LOGGER
-
 from viddit.core.content_upload.gdrive_uploader import upload_to_google_drive
-
-# from core.content_upload.youtube_uploader import YoutubeUploader
 from viddit.core.mongo import initialise_db
 from viddit.core.reddit_scraper import RedditPostImageScraper, SubRedditInfoScraper
 from viddit.core.video_writer import generate_video_from_content
 from viddit.utils.args_utils import parse_args
 from viddit.utils.logging_utils import setup_logger
 
+logger = logging.getLogger(__name__)
 logging.getLogger("gtts").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("praw").setLevel(logging.WARNING)
-
-LOGGER.setLevel(logging.INFO)
-
-logger = logging.getLogger(__name__)
-
 
 BASE_OUTPUT_DIR = os.path.join("output")
 COMMENT_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "comments")
@@ -36,8 +28,6 @@ DIRECTORIES = {
     "comment_audio": COMMENT_AUDIO_DIR,
     "comment_image": COMMENT_IMAGE_DIR,
 }
-
-
 BACKGROUND_PATH = os.path.join(os.path.dirname(__file__), "resources", "background.mp4")
 REDDIT_CREDS_PATH = os.path.join(os.path.dirname(__file__), "resources", "reddit_credentials.json")
 OUATH_CREDS_PATH = os.path.join(os.path.dirname(__file__), "resources", "oauth.json")
@@ -60,6 +50,9 @@ def main():
         connection_status = False
     else:
         db, connection_status = initialise_db()
+        if not connection_status:
+            logger.error("Could not connect to MongoDB")
+            raise Exception("Could not connect to MongoDB")
     subreddit_scraper = SubRedditInfoScraper(
         reddit_creds["client_id"],
         reddit_creds["client_secret"],
@@ -69,53 +62,46 @@ def main():
     )
     comment_image_scraper = RedditPostImageScraper(DIRECTORIES, CHROME_DRIVER_PATH, operating_sys=args.operating_sys)
     for i in range(len(reddits)):
-        posts = subreddit_scraper.get_subreddit_info(
-            reddits[i],
-            limit=args.max_vids_per_subreddit,
-            time_filter="all",
-            filter_locked=True,
-            filter_mod=False,
-            filter_stickied=True,
-            filter_original_content=False,
-            filter_nsfw=False,
-            min_upvotes=50,
-            min_num_comments=10,
-            min_upvote_ratio=0.85,
-        )
+        try:
+            posts = subreddit_scraper.get_subreddit_info(
+                reddits[i],
+                limit=args.max_vids_per_subreddit,
+                time_filter="all",
+                filter_locked=True,
+                filter_mod=False,
+                filter_stickied=True,
+                filter_original_content=False,
+                filter_nsfw=False,
+                min_upvotes=50,
+                min_num_comments=10,
+                min_upvote_ratio=0.85,
+            )
+        except Exception as e:
+            logger.error(f"Could not scrape subreddit {reddits[i]}: {e}")
+            posts = []      
         for j in range(len(posts)):
-            post_link = "https://www.reddit.com" + posts[j]["permalink"]
-            # try:
-            if args.local_mode:
-                post_name = posts[j]["title"].replace(" ", "_")
-                no_comments = comment_image_scraper.scrape_post("https://www.reddit.com" + posts[j]["permalink"], args.max_comments)
-                vid_input_list = [f"{POST_IMAGE_DIR}/0.png"] + [
-                    f"{COMMENT_IMAGE_DIR}/{x}.png" for x in range(0, no_comments)
-                ]  # TODO Pass back paths from scrape
-                audio_input_list = [f"{POST_AUDIO_DIR}/0.mp3"] + [f"{COMMENT_AUDIO_DIR}/{x}.mp3" for x in range(0, no_comments)]
-                generate_video_from_content(BACKGROUND_PATH, vid_input_list, audio_input_list, output_name=TEMP_OUTPUT_NAME)
-                upload_to_google_drive(TEMP_OUTPUT_NAME, OUATH_CREDS_PATH, post_name + ".mp4")
-                os.remove(TEMP_OUTPUT_NAME)
-            else:
+            try:
+                post_link = "https://www.reddit.com" + posts[j]["permalink"]
+                create = True
                 if connection_status:
-                    if not db.get_viddited(posts[j]["permalink"]):
-                        post_name = posts[j]["title"].replace(" ", "_")
-                        no_comments = comment_image_scraper.scrape_post(
-                            "https://www.reddit.com" + posts[j]["permalink"], args.max_comments
-                        )
-                        vid_input_list = [f"{POST_IMAGE_DIR}/0.png"] + [
-                            f"{COMMENT_IMAGE_DIR}/{x}.png" for x in range(0, no_comments)
-                        ]  # TODO Pass back paths from scrape
-                        audio_input_list = [f"{POST_AUDIO_DIR}/0.mp3"] + [f"{COMMENT_AUDIO_DIR}/{x}.mp3" for x in range(0, no_comments)]
-                        generate_video_from_content(BACKGROUND_PATH, vid_input_list, audio_input_list, output_name=post_name + ".mp4")
-                        upload_to_google_drive(post_name + ".mp4", OUATH_CREDS_PATH)
-                        os.remove(TEMP_OUTPUT_NAME)
+                    if db.get_viddited(posts[j]["permalink"]):
+                        create = False
+                if create:
+                    logger.info(f"Creating video for {post_link}")
+                    post_name = posts[j]["title"].replace(" ", "_")
+                    no_comments = comment_image_scraper.scrape_post(post_link, args.max_comments)
+                    vid_input_list = [f"{POST_IMAGE_DIR}/0.png"] + [
+                        f"{COMMENT_IMAGE_DIR}/{x}.png" for x in range(0, no_comments)
+                    ]
+                    audio_input_list = [f"{POST_AUDIO_DIR}/0.mp3"] + [f"{COMMENT_AUDIO_DIR}/{x}.mp3" for x in range(0, no_comments)]
+                    generate_video_from_content(BACKGROUND_PATH, vid_input_list, audio_input_list, output_name=TEMP_OUTPUT_NAME)
+                    upload_to_google_drive(TEMP_OUTPUT_NAME, OUATH_CREDS_PATH, post_name + ".mp4")
+                    if connection_status:
                         db.add_viddited(posts[j]["permalink"])
-                else:
-                    raise Exception("Unable to connect to database while in non-local mode")
-            # except Exception as e:
-            #     logger.error(f"Error processing post {post_link}")
-            #     logger.error(e)
-            #     continue
+            except Exception as e:
+                logger.error(f"Error processing post {post_link}")
+                logger.error(e)
+                continue
 
 
 if __name__ == "__main__":
