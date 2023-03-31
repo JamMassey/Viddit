@@ -9,11 +9,14 @@ from viddit.core.reddit_scraper import RedditPostImageScraper, SubRedditInfoScra
 from viddit.core.video_writer import generate_video_from_content
 from viddit.utils.args_utils import parse_args
 from viddit.utils.logging_utils import setup_logger
+from viddit.core.metadata import GPTMetadata
+from viddit.core.tts import GoogleCloudTTS
 
 logger = logging.getLogger(__name__)
 logging.getLogger("gtts").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("praw").setLevel(logging.WARNING)
+logging.getLogger("selenium").setLevel(logging.WARNING)
 
 BASE_OUTPUT_DIR = os.path.join("output")
 COMMENT_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, "comments")
@@ -30,10 +33,13 @@ DIRECTORIES = {
 }
 BACKGROUND_PATH = os.path.join(os.path.dirname(__file__), "resources", "background.mp4")
 REDDIT_CREDS_PATH = os.path.join(os.path.dirname(__file__), "resources", "reddit_credentials.json")
+OPENAI_CREDS_PATH = os.path.join(os.path.dirname(__file__), "resources", "gpt_key.json")
 OUATH_CREDS_PATH = os.path.join(os.path.dirname(__file__), "resources", "oauth.json")
 CLIENT_SECRETS_PATH = os.path.join(os.path.dirname(__file__), "resources", "client_secrets.json")
 CHROME_DRIVER_PATH = os.path.join(os.path.dirname(__file__), "resources", "chromedriver")  # Dockerfile dictates where this is
-TEMP_OUTPUT_NAME = "output.mp4"
+SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), "resources", "tts_key.json")  # Dockerfile dictates where this is
+
+TEMP_OUTPUT_NAME = "output"
 
 from pydrive.auth import GoogleAuth
 
@@ -45,6 +51,7 @@ def main():
     reddits = args.subreddits.split("|")
     setup_logger(level=args.log_level, stream_logs=args.console_log)
     reddit_creds = json.load(open(REDDIT_CREDS_PATH))
+    metadata_generator = GPTMetadata(OPENAI_CREDS_PATH)
     if args.local_mode:
         db = None
         connection_status = False
@@ -53,6 +60,9 @@ def main():
         if not connection_status:
             logger.error("Could not connect to MongoDB")
             raise Exception("Could not connect to MongoDB")
+        
+    tts_module = GoogleCloudTTS(SERVICE_ACCOUNT_PATH)
+
     subreddit_scraper = SubRedditInfoScraper(
         reddit_creds["client_id"],
         reddit_creds["client_secret"],
@@ -60,7 +70,7 @@ def main():
         reddit_creds["user_agent"],
         reddit_creds["username"],
     )
-    comment_image_scraper = RedditPostImageScraper(DIRECTORIES, CHROME_DRIVER_PATH, operating_sys=args.operating_sys)
+    comment_image_scraper = RedditPostImageScraper(DIRECTORIES,tts_module, CHROME_DRIVER_PATH, operating_sys=args.operating_sys)
     for i in range(len(reddits)):
         try:
             posts = subreddit_scraper.get_subreddit_info(
@@ -76,33 +86,36 @@ def main():
                 min_num_comments=10,
                 min_upvote_ratio=0.85,
             )
+    
+            for j in range(len(posts)):
+                try:
+                    post_link = "https://www.reddit.com" + posts[j]["permalink"]
+                    create = True
+                    if connection_status:
+                        if db.get_viddited(posts[j]["permalink"]):
+                            create = False
+                    if create:
+                        logger.info(f"Creating video for {post_link}")
+                        no_comments, post_info = comment_image_scraper.scrape_post(post_link, args.max_comments)
+                        vid_input_list = [f"{POST_IMAGE_DIR}/0.png"] + [
+                            f"{COMMENT_IMAGE_DIR}/{x}.png" for x in range(0, no_comments)
+                        ]
+                        audio_input_list = [f"{POST_AUDIO_DIR}/0.mp3"] + [f"{COMMENT_AUDIO_DIR}/{x}.mp3" for x in range(0, no_comments)]
+                        generate_video_from_content(BACKGROUND_PATH, vid_input_list, audio_input_list, output_name=TEMP_OUTPUT_NAME+".mp4")
+                        metadata = metadata_generator.generate_metadata_gpt(post_info)
+                        with open(TEMP_OUTPUT_NAME+".json", "w") as f:
+                            json.dump(metadata, f)
+                        upload_to_google_drive(TEMP_OUTPUT_NAME+".mp4", OUATH_CREDS_PATH, metadata["Title"] + ".mp4")
+                        upload_to_google_drive(TEMP_OUTPUT_NAME+".json", OUATH_CREDS_PATH, metadata["Title"]  + ".json")
+                        if connection_status:
+                            db.add_viddited(posts[j]["permalink"]) #TODO Add metadata
+                except Exception as e:
+                    logger.error(f"Error processing post {post_link}")
+                    logger.error(e)
+                    continue
         except Exception as e:
             logger.error(f"Could not scrape subreddit {reddits[i]}: {e}")
-            posts = []      
-        for j in range(len(posts)):
-            try:
-                post_link = "https://www.reddit.com" + posts[j]["permalink"]
-                create = True
-                if connection_status:
-                    if db.get_viddited(posts[j]["permalink"]):
-                        create = False
-                if create:
-                    logger.info(f"Creating video for {post_link}")
-                    post_name = posts[j]["title"].replace(" ", "_")
-                    no_comments = comment_image_scraper.scrape_post(post_link, args.max_comments)
-                    vid_input_list = [f"{POST_IMAGE_DIR}/0.png"] + [
-                        f"{COMMENT_IMAGE_DIR}/{x}.png" for x in range(0, no_comments)
-                    ]
-                    audio_input_list = [f"{POST_AUDIO_DIR}/0.mp3"] + [f"{COMMENT_AUDIO_DIR}/{x}.mp3" for x in range(0, no_comments)]
-                    generate_video_from_content(BACKGROUND_PATH, vid_input_list, audio_input_list, output_name=TEMP_OUTPUT_NAME)
-                    upload_to_google_drive(TEMP_OUTPUT_NAME, OUATH_CREDS_PATH, post_name + ".mp4")
-                    if connection_status:
-                        db.add_viddited(posts[j]["permalink"])
-            except Exception as e:
-                logger.error(f"Error processing post {post_link}")
-                logger.error(e)
-                continue
-
+            posts = []  
 
 if __name__ == "__main__":
     main()

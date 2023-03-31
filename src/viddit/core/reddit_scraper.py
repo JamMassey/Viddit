@@ -3,6 +3,7 @@ import os
 import time
 
 import praw
+import random
 from gtts import gTTS
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -16,9 +17,11 @@ from viddit.utils.file_util import delete_content_of_dir, make_dir_if_not_exists
 
 logger = logging.getLogger(__name__)
 
+LANG_BASE_MODEL = "en-US-Standard-"
+MODELS = ["A","B","C","D","E","F"]
 
 class RedditPostImageScraper:
-    def __init__(self, directories, path_to_driver="chromedriver.exe", headless=True, operating_sys = "linux"):
+    def __init__(self, directories, tts_module, path_to_driver="chromedriver.exe", headless=True, operating_sys = "linux"):
         #check driver exists
         if operating_sys not in ["windows", "linux"]:
             raise ValueError("os must be 'windows' or 'linux'")
@@ -38,6 +41,7 @@ class RedditPostImageScraper:
             options.add_argument("--headless")
         self.driver = webdriver.Chrome(path_to_driver, options=options)
         self.directories = directories
+        self.tts_module = tts_module
         self.setup()
 
     def setup(self):
@@ -65,7 +69,7 @@ class RedditPostImageScraper:
         # for cookie in config['reddit_cookies'].split('; '):
         #     cookie_data = cookie.split('=')
         #     driver.add_cookie({'name':cookie_data[0],'value':cookie_data[1],'domain':'reddit.com'})
-
+        post_data = {}
         # Fetching the post itself, text & screenshot
         logger.debug("Deleting old data...")
         self.delete_data()
@@ -73,11 +77,12 @@ class RedditPostImageScraper:
         self.driver.get(post_url)
         post = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".Post")))
         post_text = post.find_element(By.CSS_SELECTOR, "h1").text  # TODO Text to speech
+        post_data["Post"] = post_text
         post.screenshot(os.path.join(self.directories["post_image"], "0.png"))
         logger.debug("Post text: " + post_text)
         logger.info("Post fetched, performing text to speech for main post...")
-        tts = gTTS(post_text)
-        tts.save(os.path.join(self.directories["post_audio"], "0.mp3"))
+        # random choice of model
+        self.tts_module.text_to_speech(post_text, os.path.join(self.directories["post_audio"], "0.mp3"), language_code="en-US", voice_name=LANG_BASE_MODEL+random.choice(MODELS), speaking_rate = 1.25)
         # Let comments load
         logger.debug("Waiting for comments to load...")
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -106,12 +111,12 @@ class RedditPostImageScraper:
             # Getting comment into string
             text = "\n".join([element.text for element in comments[i].find_elements(By.CSS_SELECTOR, ".RichTextJSON-root")])
             logger.debug(f"Performing TTS for comment {str(i)}, text: " + text)
-            tts = gTTS(text)
-            tts.save(os.path.join(self.directories["comment_audio"], f"{i}.mp3"))
+            self.tts_module.text_to_speech(text,os.path.join(self.directories["comment_audio"], f"{i}.mp3"), language_code="en-US", voice_name=LANG_BASE_MODEL+random.choice(MODELS), speaking_rate = 1.25)
+            post_data[f"Comment_{str(i)}"] = text
             # Screenshot & save text
             comments[i].screenshot(os.path.join(self.directories["comment_image"], f"{i}.png"))
         logger.info("Post and top comments screenshoted and text to speech-ed.")
-        return len(comments)
+        return len(comments), post_data
 
 
 class SubRedditInfoScraper:
@@ -128,7 +133,7 @@ class SubRedditInfoScraper:
         self,
         subreddit_name,
         limit=10,
-        time_filter="all",
+        time_filter="day",
         filter_locked=True,
         filter_mod=False,
         filter_stickied=True,
