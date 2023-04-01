@@ -279,3 +279,5 @@ chromedriver.exe
 *.png
 data/
 src/viddit/resources/*
+debug.ipynb_checkpoints
+output
