@@ -1,10 +1,5 @@
 version: '2'
 services:
-  viddit:
-    build: .
-    container_name: viddit
-
-    #restart: always
   mongo:
     image: mongo
     container_name: mongo
@@ -13,5 +8,12 @@ services:
     volumes:
       - ./data:/data/db
     restart: always
+  viddit:
+    build: .
+    container_name: viddit
     depends_on:
-      - viddit
+      - mongo
+    # args:
+    #   - SUBREDDITS=Showerthoughts
+    #   - MAX_COMMENTS=5
+    #   - MAX_VIDEOS=20

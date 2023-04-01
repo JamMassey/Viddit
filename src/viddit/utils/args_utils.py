@@ -41,9 +41,9 @@ class Args:
 
     log_level: int = logging.INFO
     console_log: bool = True
-    subreddits: List[str] = field(default_factory=list)
-    max_vids_per_subreddit: int = 3
-    max_comments: int = 5
+    subreddits: str = "Showerthoughts|LifeProTips"
+    max_vids_per_subreddit: int = 1
+    max_comments: int = 3
     local_mode: bool = True
     operating_sys: str = "windows"
 
@@ -67,8 +67,8 @@ def parse_args() -> Args:
     arg_parser.add_argument(
         "-sr",
         "--subreddits",
-        nargs="+",
-        default=["Showerthoughts"],
+        type=str,
+        default="Showerthoughts|LifeProTips",
         dest="subreddits",
         help="The subreddits to scrape",
     )
@@ -76,7 +76,7 @@ def parse_args() -> Args:
         "-mv",
         "--max-vids-per-subreddit",
         type=int,
-        default=3,
+        default=1,
         dest="max_vids_per_subreddit",
         help="The max number of videos to scrape per subreddit",
     )
@@ -84,7 +84,7 @@ def parse_args() -> Args:
         "-mc",
         "--max-comments",
         type=int,
-        default=5,
+        default=3,
         dest="max_comments",
         help="The max number of comments to scrape per video",
     )

@@ -7,7 +7,7 @@ setuptools.setup(
         'viddit': ['resources/*']
     },
     include_package_data=True,
-    install_requires=["opencv-python", "selenium", "moviepy", "numpy", "oauth2client", "gTTS", "google-api-python-client", "google-auth-oauthlib", "google-auth-httplib2", "pymongo", "praw", "pydrive"],
+    install_requires=["opencv-python", "selenium", "moviepy", "numpy", "oauth2client","google-cloud-texttospeech", "gTTS", "google-api-python-client", "google-auth-oauthlib", "openai", "google-auth-httplib2", "pymongo", "praw", "pydrive"],
     packages=setuptools.find_packages(where='src'),
     entry_points={
         'console_scripts': [
