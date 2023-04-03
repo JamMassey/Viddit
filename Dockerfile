@@ -7,17 +7,18 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
 
 WORKDIR /code
 COPY setup.py setup.cfg pyproject.toml /code/
-COPY src/viddit /code/src/viddit
+COPY src /code/src
 
 # Install chrome and chrome driver
 RUN apt-get update \
-    && apt-get install -y ffmpeg libsm6 libxext6 wget unzip \
+    && apt-get install -y ffmpeg libsm6 libxext6 wget unzip gnupg \
+    && apt-get install -y curl \
     && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list' \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get -y update \
     && apt-get install -y google-chrome-stable \
     && wget -O /tmp/chromedriver.zip http://chromedriver.storage.googleapis.com/`curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE`/chromedriver_linux64.zip \
-    && unzip /tmp/chromedriver.zip chromedriver -d /code/src/viddit/resources \
+    && unzip -o -q /tmp/chromedriver.zip -d /code/src/viddit/resources \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Set display port to avoid crash
@@ -32,6 +33,7 @@ RUN set -ex \
     && addgroup --system --gid 1001 appgroup \
     && adduser --system --uid 1001 --gid 1001 --no-create-home appuser \
     && chown -R appuser:appgroup /code \
+    && pip install wheel \
     && pip install . \
     && apt-get autoremove -y \
     && apt-get clean -y \
@@ -39,6 +41,8 @@ RUN set -ex \
 
 CMD [ "python3", "src/viddit" ]
 USER appuser
+
+
 #, "--subreddits", "$SUBREDDITS", "--max-comments", "$MAX_COMMENTS", "--max-vids-
 
 
