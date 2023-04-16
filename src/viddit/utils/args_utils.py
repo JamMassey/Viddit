@@ -42,7 +42,7 @@ class Args:
     log_level: int = logging.INFO
     console_log: bool = True
     subreddits: str = "Showerthoughts|LifeProTips"
-    max_vids_per_subreddit: int = 1
+    max_vids_per_subreddit: int = 12
     max_comments: int = 3
     local_mode: bool = True
     operating_sys: str = "windows"
@@ -76,7 +76,7 @@ def parse_args() -> Args:
         "-mv",
         "--max-vids-per-subreddit",
         type=int,
-        default=1,
+        default=12,
         dest="max_vids_per_subreddit",
         help="The max number of videos to scrape per subreddit",
     )
