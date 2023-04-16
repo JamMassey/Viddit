@@ -76,7 +76,7 @@ class RedditPostImageScraper:
         logger.info("Fetching post with URL: " + post_url)
         self.driver.get(post_url)
         post = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".Post")))
-        post_text = post.find_element(By.CSS_SELECTOR, "h1").text  # TODO Text to speech
+        post_text = post.find_element(By.CSS_SELECTOR, "h1").text
         post_data["Post"] = post_text
         post.screenshot(os.path.join(self.directories["post_image"], "0.png"))
         logger.debug("Post text: " + post_text)

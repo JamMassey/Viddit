@@ -279,3 +279,4 @@ chromedriver.exe
 *.png
 data/
 src/viddit/resources/*
+*.ipynb
