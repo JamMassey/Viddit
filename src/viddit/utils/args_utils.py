@@ -41,11 +41,11 @@ class Args:
 
     log_level: int = logging.INFO
     console_log: bool = True
-    subreddits: str = "Showerthoughts|LifeProTips"
-    max_vids_per_subreddit: int = 1
+    subreddits: str = "Showerthoughts|LifeProTips|AskReddit|NoStupidQuestions|AskMen|AskWomen|explainlikeimfive|TIFU|YouShouldKnow|OutOfTheLoop|relationship_advice|TrueAskReddit"
+    max_vids_per_subreddit: int = 5
     max_comments: int = 3
     local_mode: bool = True
-    operating_sys: str = "windows"
+    operating_sys: str = "linux"
 
 
 def parse_args() -> Args:
@@ -68,7 +68,7 @@ def parse_args() -> Args:
         "-sr",
         "--subreddits",
         type=str,
-        default="Showerthoughts|LifeProTips",
+        default="Showerthoughts|LifeProTips|AskReddit|NoStupidQuestions|AskMen|AskWomen|explainlikeimfive|TIFU|YouShouldKnow|OutOfTheLoop|relationship_advice|TrueAskReddit",
         dest="subreddits",
         help="The subreddits to scrape",
     )
@@ -76,7 +76,7 @@ def parse_args() -> Args:
         "-mv",
         "--max-vids-per-subreddit",
         type=int,
-        default=1,
+        default=5,
         dest="max_vids_per_subreddit",
         help="The max number of videos to scrape per subreddit",
     )
@@ -92,7 +92,7 @@ def parse_args() -> Args:
         "-os",
         "--operating-system",
         type=str,
-        default="windows",
+        default="linux",
         dest="operating_sys",
         help="The operating system to run the program on",
     )

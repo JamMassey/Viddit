@@ -76,7 +76,7 @@ def main():
             posts = subreddit_scraper.get_subreddit_info(
                 reddits[i],
                 limit=args.max_vids_per_subreddit,
-                time_filter="all",
+                time_filter="day",
                 filter_locked=True,
                 filter_mod=False,
                 filter_stickied=True,

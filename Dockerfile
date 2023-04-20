@@ -18,7 +18,8 @@ RUN apt-get install -y google-chrome-stable
 # Install and unzip chromedriver
 RUN apt-get install -yqq unzip
 RUN wget -O /tmp/chromedriver.zip http://chromedriver.storage.googleapis.com/`curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE`/chromedriver_linux64.zip
-RUN unzip /tmp/chromedriver.zip chromedriver -d /code/src/viddit/resources
+RUN unzip -o /tmp/chromedriver.zip chromedriver -d /code/src/viddit/resources
+
 
 # Set display port to avoid crash
 ENV DISPLAY=:99
