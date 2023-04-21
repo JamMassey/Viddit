@@ -1,9 +1,9 @@
 import logging
 import os
+import random
 import time
 
 import praw
-import random
 from gtts import gTTS
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -11,6 +11,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+
 from viddit.utils.file_util import delete_content_of_dir, make_dir_if_not_exists
 
 # TODO: Remove Automod comments
@@ -18,11 +19,12 @@ from viddit.utils.file_util import delete_content_of_dir, make_dir_if_not_exists
 logger = logging.getLogger(__name__)
 
 LANG_BASE_MODEL = "en-US-Standard-"
-MODELS = ["A","B","C","D","E","F"]
+MODELS = ["A", "B", "C", "D", "E", "F"]
+
 
 class RedditPostImageScraper:
-    def __init__(self, directories, tts_module, path_to_driver="chromedriver.exe", headless=True, operating_sys = "linux"):
-        #check driver exists
+    def __init__(self, directories, tts_module, path_to_driver="chromedriver.exe", headless=True, operating_sys="linux"):
+        # check driver exists
         if operating_sys not in ["windows", "linux"]:
             raise ValueError("os must be 'windows' or 'linux'")
         if not os.path.exists(path_to_driver):
@@ -31,7 +33,9 @@ class RedditPostImageScraper:
         if operating_sys == "linux":
             options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--remote-debugging-port=0")
-            options.add_argument("--no-sandbox") # Discouraged - It is way better to run the Docker container as a non-root user. Problem for another day.
+            options.add_argument(
+                "--no-sandbox"
+            )  # Discouraged - It is way better to run the Docker container as a non-root user. Problem for another day.
             options.add_argument("--start-maximized")
             options.add_argument("--disable-infobars")
             options.add_argument("--disable-extensions")
@@ -76,13 +80,24 @@ class RedditPostImageScraper:
         logger.info("Fetching post with URL: " + post_url)
         self.driver.get(post_url)
         post = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".Post")))
-        post_text = post.find_element(By.CSS_SELECTOR, "h1").text
-        post_data["Post"] = post_text
+        title_element = post.find_element(By.CSS_SELECTOR, "h1")
+        title_text = title_element.text.strip()
+        content_container = post.find_element(By.CSS_SELECTOR, "div[data-test-id='post-content']")
+        content_element = content_container.find_element(By.CSS_SELECTOR, "[data-click-id='text']")
+        post_text = content_element.text.strip()
+        full_post_text = f"{title_text}\n{post_text}"
+        post_data["Post"] = full_post_text
         post.screenshot(os.path.join(self.directories["post_image"], "0.png"))
-        logger.debug("Post text: " + post_text)
+        logger.debug("Post text: " + full_post_text)
         logger.info("Post fetched, performing text to speech for main post...")
         # random choice of model
-        self.tts_module.text_to_speech(post_text, os.path.join(self.directories["post_audio"], "0.mp3"), language_code="en-US", voice_name=LANG_BASE_MODEL+random.choice(MODELS), speaking_rate = 1.25)
+        self.tts_module.text_to_speech(
+            full_post_text,
+            os.path.join(self.directories["post_audio"], "0.mp3"),
+            language_code="en-US",
+            voice_name=LANG_BASE_MODEL + random.choice(MODELS),
+            speaking_rate=1.25,
+        )
         # Let comments load
         logger.debug("Waiting for comments to load...")
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -92,9 +107,14 @@ class RedditPostImageScraper:
         comments = WebDriverWait(self.driver, 20).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div[id^=t1_][tabindex]")))
         allowed_style = comments[0].get_attribute("style")
         # Filter for top only comments
-        comments = [comment for comment in comments if comment.get_attribute("style") == allowed_style][:no_comments]
+        comments = [comment for comment in comments if comment.get_attribute("style") == allowed_style][: no_comments + 1]
         logger.info(f"Found {len(comments)} comments, filtering for top level comments...")
 
+        text = "\n".join([element.text for element in comments[0].find_elements(By.CSS_SELECTOR, ".RichTextJSON-root")])
+        if "I am a bot" in text:
+            comments.pop(0)
+        else:
+            comments.pop()
         # Save time & resources by only fetching X content
         for i in range(len(comments)):
             # TODO Filter out locked comments (AutoMod)
@@ -111,7 +131,13 @@ class RedditPostImageScraper:
             # Getting comment into string
             text = "\n".join([element.text for element in comments[i].find_elements(By.CSS_SELECTOR, ".RichTextJSON-root")])
             logger.debug(f"Performing TTS for comment {str(i)}, text: " + text)
-            self.tts_module.text_to_speech(text,os.path.join(self.directories["comment_audio"], f"{i}.mp3"), language_code="en-US", voice_name=LANG_BASE_MODEL+random.choice(MODELS), speaking_rate = 1.25)
+            self.tts_module.text_to_speech(
+                text,
+                os.path.join(self.directories["comment_audio"], f"{i}.mp3"),
+                language_code="en-US",
+                voice_name=LANG_BASE_MODEL + random.choice(MODELS),
+                speaking_rate=1.25,
+            )
             post_data[f"Comment_{str(i)}"] = text
             # Screenshot & save text
             comments[i].screenshot(os.path.join(self.directories["comment_image"], f"{i}.png"))
