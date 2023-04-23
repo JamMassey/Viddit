@@ -61,6 +61,7 @@ def generate_video_from_content(background_video_path, png_paths, audio_paths, o
         frames = []
         logger.info(f"Creating clip {j} of {len(png_paths)}, there are {num_frames} frames.")
         for i in range(num_frames):
+            logger.debug(f"Frame {str(i)} of {str(num_frames)}")
             ret, frame = cap.read()
             if ret:
                 # Overlay the PNG image on the video frame using the alpha mask and NumPy operations

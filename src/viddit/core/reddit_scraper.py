@@ -79,7 +79,7 @@ class RedditPostImageScraper:
         self.delete_data()
         logger.info("Fetching post with URL: " + post_url)
         self.driver.get(post_url)
-        post = WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".Post")))
+        post = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".Post")))
         title_element = post.find_element(By.CSS_SELECTOR, "h1")
         title_text = title_element.text.strip()
         content_container = post.find_element(By.CSS_SELECTOR, "div[data-test-id='post-content']")
@@ -88,7 +88,7 @@ class RedditPostImageScraper:
         full_post_text = f"{title_text}\n{post_text}"
         post_data["Post"] = full_post_text
         post.screenshot(os.path.join(self.directories["post_image"], "0.png"))
-        logger.debug("Post text: " + full_post_text)
+        logger.info("Post text: " + full_post_text)
         logger.info("Post fetched, performing text to speech for main post...")
         # random choice of model
         self.tts_module.text_to_speech(
