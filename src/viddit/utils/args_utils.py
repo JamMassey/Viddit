@@ -44,7 +44,7 @@ class Args:
     subreddits: str = "Showerthoughts|LifeProTips|AskReddit|NoStupidQuestions|AskMen|AskWomen|explainlikeimfive|TIFU|YouShouldKnow|OutOfTheLoop|relationship_advice|TrueAskReddit"
     max_vids_per_subreddit: int = 5
     max_comments: int = 3
-    local_mode: bool = True
+    local_mode: bool = False
     operating_sys: str = "linux"
 
 
@@ -96,6 +96,6 @@ def parse_args() -> Args:
         dest="operating_sys",
         help="The operating system to run the program on",
     )
-    add_boolean_arg(arg_parser, "local-mode", "Run in local mode", default=True)
+    add_boolean_arg(arg_parser, "local-mode", "Run in local mode", default=False)
     add_boolean_arg(arg_parser, "console-log", "Log to console", default=True)
     return Args(**OrderedDict(vars(arg_parser.parse_args())))
