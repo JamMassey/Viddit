@@ -7,12 +7,10 @@ services:
       - "27017:27017"
     volumes:
       - ./data:/data/db
-    restart: always
   viddit:
     build: .
     container_name: viddit
-    depends_on:
-      - mongo
+
     # args:
     #   - SUBREDDITS=Showerthoughts
     #   - MAX_COMMENTS=5
