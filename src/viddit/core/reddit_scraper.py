@@ -69,57 +69,58 @@ class RedditPostImageScraper:
         self.driver.switch_to.default_content()
 
     def scrape_post(self, post_url, no_comments=5):
-        # Load cookies to prevent cookie overlay & other issues
-        # for cookie in config['reddit_cookies'].split('; '):
-        #     cookie_data = cookie.split('=')
-        #     driver.add_cookie({'name':cookie_data[0],'value':cookie_data[1],'domain':'reddit.com'})
         post_data = {}
-        # Fetching the post itself, text & screenshot
         logger.debug("Deleting old data...")
         self.delete_data()
         logger.info("Fetching post with URL: " + post_url)
         self.driver.get(post_url)
-        post = WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".Post")))
-        title_element = post.find_element(By.CSS_SELECTOR, "h1")
-        title_text = title_element.text.strip()
-        content_container = post.find_element(By.CSS_SELECTOR, "div[data-test-id='post-content']")
-        content_element = content_container.find_element(By.CSS_SELECTOR, "[data-click-id='text']")
-        post_text = content_element.text.strip()
+        new_css = False
+        try:
+            post = WebDriverWait(self.driver, 8).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".Post")))
+        except Exception as e:
+            logger.info("Could not find post, trying alternate CSS styling...")
+            try:
+                post = WebDriverWait(self.driver, 8).until(EC.presence_of_element_located((By.TAG_NAME, "shreddit-post")))
+                new_css = True
+            except Exception as e:
+                logger.error("Could not find post..")
+                raise e
+            
+        if new_css:
+            title_text = post.get_attribute('post-title')
+            post_text = post.find_element(By.CSS_SELECTOR,".post-content").text.strip() 
+        else:
+            title_text = post.find_element(By.CSS_SELECTOR, "h1").text.strip()
+            post_text = post.find_element(By.CSS_SELECTOR,"div[data-test-id='post-content']").find_element(By.CSS_SELECTOR,"[data-click-id='text']").text.strip()
+
         full_post_text = f"{title_text}\n{post_text}"
         post_data["Post"] = full_post_text
         post.screenshot(os.path.join(self.directories["post_image"], "0.png"))
         logger.info("Post text: " + full_post_text)
         logger.info("Post fetched, performing text to speech for main post...")
-        # random choice of model
-        self.tts_module.text_to_speech(
-            full_post_text,
-            os.path.join(self.directories["post_audio"], "0.mp3"),
-            language_code="en-US",
-            voice_name=LANG_BASE_MODEL + random.choice(MODELS),
-            speaking_rate=1.25,
-        )
-        # Let comments load
+        self.tts_module.text_to_speech(full_post_text, os.path.join(self.directories["post_audio"], "0.mp3"), language_code="en-US", voice_name=LANG_BASE_MODEL+random.choice(MODELS), speaking_rate = 1.25)
         logger.debug("Waiting for comments to load...")
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(3)  # TODO Can be a WebDriverWait
 
-        # Fetching comments & top level comment determinator
-        comments = WebDriverWait(self.driver, 20).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div[id^=t1_][tabindex]")))
-        allowed_style = comments[0].get_attribute("style")
-        # Filter for top only comments
-        comments = [comment for comment in comments if comment.get_attribute("style") == allowed_style][: no_comments + 1]
-        logger.info(f"Found {len(comments)} comments, filtering for top level comments...")
+        if new_css:
+            comments = WebDriverWait(self.driver, 20).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "shreddit-comment")))
+            mod_flag = comments[0].find_element(By.XPATH,(".//*[not(self::icon-mod)]"))
+        else:
+            comments = WebDriverWait(self.driver, 20).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div[id^=t1_][tabindex]")))
+            mod_flag = comments[0].find_element(By.CSS_SELECTOR,(".icon.icon-lock_fill"))
 
-        text = "\n".join([element.text for element in comments[0].find_elements(By.CSS_SELECTOR, ".RichTextJSON-root")])
-        if "I am a bot" in text:
+        allowed_style = comments[0].get_attribute("style") #Filter for top level comments
+        comments = [comment for comment in comments if comment.get_attribute("style") == allowed_style][:no_comments+1]
+        logger.info(f"Found {len(comments)} comments, filtering for top level comments...")
+        if mod_flag:
+            logger.info("Mod comment found, removing")
             comments.pop(0)
         else:
+            logger.info("Mod comment not found, removing last comment")
             comments.pop()
-        # Save time & resources by only fetching X content
+
         for i in range(len(comments)):
-            # TODO Filter out locked comments (AutoMod)
-            # Scrolling to the comment ensures that the profile picture loads
-            # Credit: https://stackoverflow.com/a/57630350
             desired_y = (comments[i].size["height"] / 2) + comments[i].location["y"]
             window_h = self.driver.execute_script("return window.innerHeight")
             window_y = self.driver.execute_script("return window.pageYOffset")
@@ -127,17 +128,14 @@ class RedditPostImageScraper:
             scroll_y_by = desired_y - current_y
             self.driver.execute_script("window.scrollBy(0, arguments[0]);", scroll_y_by)
             time.sleep(0.2)
+            if new_css:
+                text =  comments[i].find_element(By.CSS_SELECTOR,'#-post-rtjson-content').text.strip()
+                comments[i] = self.driver.execute_script('return arguments[0].shadowRoot.querySelector("details")', comments[i]) # This isolates the individual comment, otherwise we screenshot the tree
 
-            # Getting comment into string
-            text = "\n".join([element.text for element in comments[i].find_elements(By.CSS_SELECTOR, ".RichTextJSON-root")])
+            else:
+                text = "\n".join([element.text for element in comments[i].find_elements(By.CSS_SELECTOR, ".RichTextJSON-root")])
             logger.debug(f"Performing TTS for comment {str(i)}, text: " + text)
-            self.tts_module.text_to_speech(
-                text,
-                os.path.join(self.directories["comment_audio"], f"{i}.mp3"),
-                language_code="en-US",
-                voice_name=LANG_BASE_MODEL + random.choice(MODELS),
-                speaking_rate=1.25,
-            )
+            self.tts_module.text_to_speech(text,os.path.join(self.directories["comment_audio"], f"{i}.mp3"), language_code="en-US", voice_name=LANG_BASE_MODEL+random.choice(MODELS), speaking_rate = 1.25)
             post_data[f"Comment_{str(i)}"] = text
             # Screenshot & save text
             comments[i].screenshot(os.path.join(self.directories["comment_image"], f"{i}.png"))
