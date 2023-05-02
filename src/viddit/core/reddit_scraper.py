@@ -85,33 +85,49 @@ class RedditPostImageScraper:
             except Exception as e:
                 logger.error("Could not find post..")
                 raise e
-            
+
         if new_css:
-            title_text = post.get_attribute('post-title')
-            post_text = post.find_element(By.CSS_SELECTOR,".post-content").text.strip() 
+            title_text = post.get_attribute("post-title")
+            try:
+                post_text = post.find_element(By.CSS_SELECTOR, "div[id$='-post-rtjson-content']").text.strip()
+            except Exception as e:
+                logger.info("Could not find post text...")
+                post_text = ""
         else:
             title_text = post.find_element(By.CSS_SELECTOR, "h1").text.strip()
-            post_text = post.find_element(By.CSS_SELECTOR,"div[data-test-id='post-content']").find_element(By.CSS_SELECTOR,"[data-click-id='text']").text.strip()
+            post_text = (
+                post.find_element(By.CSS_SELECTOR, "div[data-test-id='post-content']")
+                .find_element(By.CSS_SELECTOR, "[data-click-id='text']")
+                .text.strip()
+            )
 
         full_post_text = f"{title_text}\n{post_text}"
         post_data["Post"] = full_post_text
         post.screenshot(os.path.join(self.directories["post_image"], "0.png"))
         logger.info("Post text: " + full_post_text)
         logger.info("Post fetched, performing text to speech for main post...")
-        self.tts_module.text_to_speech(full_post_text, os.path.join(self.directories["post_audio"], "0.mp3"), language_code="en-US", voice_name=LANG_BASE_MODEL+random.choice(MODELS), speaking_rate = 1.25)
+        self.tts_module.text_to_speech(
+            full_post_text,
+            os.path.join(self.directories["post_audio"], "0.mp3"),
+            language_code="en-US",
+            voice_name=LANG_BASE_MODEL + random.choice(MODELS),
+            speaking_rate=1.25,
+        )
         logger.debug("Waiting for comments to load...")
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(3)  # TODO Can be a WebDriverWait
 
         if new_css:
             comments = WebDriverWait(self.driver, 20).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "shreddit-comment")))
-            mod_flag = comments[0].find_element(By.XPATH,(".//*[not(self::icon-mod)]"))
+            mod_flag = comments[0].find_element(By.XPATH, (".//*[not(self::icon-mod)]"))
         else:
-            comments = WebDriverWait(self.driver, 20).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div[id^=t1_][tabindex]")))
-            mod_flag = comments[0].find_element(By.CSS_SELECTOR,(".icon.icon-lock_fill"))
+            comments = WebDriverWait(self.driver, 20).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div[id^=t1_][tabindex]"))
+            )
+            mod_flag = comments[0].find_element(By.CSS_SELECTOR, (".icon.icon-lock_fill"))
 
-        allowed_style = comments[0].get_attribute("style") #Filter for top level comments
-        comments = [comment for comment in comments if comment.get_attribute("style") == allowed_style][:no_comments+1]
+        allowed_style = comments[0].get_attribute("style")  # Filter for top level comments
+        comments = [comment for comment in comments if comment.get_attribute("style") == allowed_style][: no_comments + 1]
         logger.info(f"Found {len(comments)} comments, filtering for top level comments...")
         if mod_flag:
             logger.info("Mod comment found, removing")
@@ -129,13 +145,19 @@ class RedditPostImageScraper:
             self.driver.execute_script("window.scrollBy(0, arguments[0]);", scroll_y_by)
             time.sleep(0.2)
             if new_css:
-                text =  comments[i].find_element(By.CSS_SELECTOR,'#-post-rtjson-content').text.strip()
-                comments[i] = self.driver.execute_script('return arguments[0].shadowRoot.querySelector("details")', comments[i]) # This isolates the individual comment, otherwise we screenshot the tree
+                text = comments[i].find_element(By.CSS_SELECTOR, "#-post-rtjson-content").text.strip()
+                # comments[i] = self.driver.execute_script('return arguments[0].shadowRoot.querySelector("details")', comments[i]) # This isolates the individual comment, otherwise we screenshot the tree
 
             else:
                 text = "\n".join([element.text for element in comments[i].find_elements(By.CSS_SELECTOR, ".RichTextJSON-root")])
             logger.debug(f"Performing TTS for comment {str(i)}, text: " + text)
-            self.tts_module.text_to_speech(text,os.path.join(self.directories["comment_audio"], f"{i}.mp3"), language_code="en-US", voice_name=LANG_BASE_MODEL+random.choice(MODELS), speaking_rate = 1.25)
+            self.tts_module.text_to_speech(
+                text,
+                os.path.join(self.directories["comment_audio"], f"{i}.mp3"),
+                language_code="en-US",
+                voice_name=LANG_BASE_MODEL + random.choice(MODELS),
+                speaking_rate=1.25,
+            )
             post_data[f"Comment_{str(i)}"] = text
             # Screenshot & save text
             comments[i].screenshot(os.path.join(self.directories["comment_image"], f"{i}.png"))
