@@ -63,8 +63,11 @@ class RedditPostImageScraper:
     def accept_cookies(self):
         logger.info("Accepting Reddit cookies.")
         self.driver.get("https://www.reddit.com/")
-        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, "//button[contains(text(), 'Accept all')]")))
-        self.driver.find_element("xpath", "//button[contains(text(), 'Accept all')]").click()
+        try:
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, "//button[contains(text(), 'Accept all')]")))
+            self.driver.find_element("xpath", "//button[contains(text(), 'Accept all')]").click()
+        except Exception as e:
+            self.driver.find_element(By.CSS_SELECTOR, "button:contains('Accept all')").click()
         logger.info("Cookies accepted")
         self.driver.switch_to.default_content()
 
